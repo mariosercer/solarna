@@ -489,12 +489,24 @@
     if (window.DEMO_PODACI) { gotovo(window.DEMO_PODACI); return; }
     const p = citajPostavke();
     if (!p) { $('app').classList.remove('loading'); prikaziPostavke(''); $('meta').textContent = 'Potrebno je povezivanje s podacima.'; return; }
+    // odmah prikaži zadnje spremljene podatke, a svježe učitaj u pozadini
+    const LSD = 'solarna-podaci-' + (godina || 'zadnja');
+    if (!STATE.data) {
+      try {
+        const st = JSON.parse(localStorage.getItem(LSD) || 'null');
+        if (st && st.dani) {
+          STATE.data = st; $('sadrzaj').classList.remove('hide'); napuniFiltere(); render();
+          $('meta').textContent = 'Osvježavam podatke…';
+        }
+      } catch (e) {}
+    }
+    const gotovoSpremi = d => { try { localStorage.setItem(LSD, JSON.stringify(d)); } catch (e) {} gotovo(d); };
     const url = p.u + '?format=json&k=' + encodeURIComponent(p.k) + (godina ? '&godina=' + godina : '');
     fetch(url, { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
         if (d.greska) { greska(d.greska); if (/ključ/i.test(d.greska)) prikaziPostavke(d.greska); return; }
-        gotovo(d);
+        gotovoSpremi(d);
       })
       .catch(e => greska('Nije moguće dohvatiti podatke (' + (e.message || e) + '). Provjerite internetsku vezu i da je web aplikacija objavljena s pristupom „Anyone”.'));
   }
