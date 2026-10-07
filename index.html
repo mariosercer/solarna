@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Solarna</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Solarna">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10);
+    --s-poslano: #2a78d6; --s-mreza: #eb6834; --s-vlastita: #1baf7a; --s-ceka: #c3c2b7;
+    --pos: #2a78d6; --neg: #e34948; --good: #006300; --bad: #b42d2c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+      --s-poslano: #3987e5; --s-mreza: #d95926; --s-vlastita: #199e70; --s-ceka: #52514e;
+      --pos: #3987e5; --neg: #e66767; --good: #0ca30c; --bad: #e66767;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); }
+  .btn { font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--ring);
+         border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  .btn.primary { background: var(--s-poslano); color: #fff; border-color: transparent; }
+  .setup { display: none; }
+  .setup.on { display: block; }
+  .setup label { display: block; font-size: 13px; color: var(--ink-2); margin: 10px 0 4px; }
+  .setup input { width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: var(--page);
+                 border: 1px solid var(--ring); border-radius: 8px; padding: 8px 10px; }
+  .hide { display: none !important; }
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  h1 { font-size: 24px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .filters label { font-size: 13px; color: var(--ink-2); }
+  select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--ring);
+           border-radius: 8px; padding: 6px 10px; }
+  .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 18px 18px 14px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; margin: 0 0 2px; font-weight: 600; }
+  .card .sub { color: var(--ink-2); font-size: 13px; margin: 0 0 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  .hero { display: grid; grid-template-columns: minmax(220px, 1.2fr) repeat(4, minmax(140px, 1fr)); gap: 16px; }
+  @media (max-width: 980px) { .hero { grid-template-columns: repeat(2, 1fr); } .hero .big { grid-column: 1 / -1; } }
+  .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 16px; }
+  .tile .lbl { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+  .tile .val { font-size: 26px; font-weight: 600; margin-top: 4px; letter-spacing: -0.01em; }
+  .tile .val small { font-size: 14px; font-weight: 500; color: var(--ink-2); }
+  .tile .det { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .big .val { font-size: 52px; line-height: 1.05; }
+  .key { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .lkey { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
+  .chart { position: relative; width: 100%; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .chart .hit { fill: transparent; cursor: default; }
+  .chart .hit:hover { fill: var(--ink); fill-opacity: 0.04; }
+  .tip { position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--ink);
+         border: 1px solid var(--ring); border-radius: 10px; padding: 8px 10px; font-size: 12.5px;
+         box-shadow: 0 6px 24px rgba(0,0,0,0.12); min-width: 170px; display: none; }
+  .tip .t { color: var(--ink-2); margin-bottom: 4px; }
+  .tip .r { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+  .tip .r b { font-variant-numeric: tabular-nums; }
+  .tip .r span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  tfoot td { font-weight: 600; border-bottom: 0; }
+  .scroll { overflow-x: auto; }
+  .neg { color: var(--bad); } .posv { color: var(--good); }
+  .note { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+  .loading { opacity: 0.5; transition: opacity .2s; }
+  .err { color: var(--bad); padding: 24px 0; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <h1>Solarna elektrana</h1>
+      <div class="meta" id="meta">Učitavanje…</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="bOsvjezi" aria-label="Osvježi">↻ Osvježi</button>
+      <button class="btn" id="bPostavke" aria-label="Postavke">⚙</button>
+    </div>
+  </header>
+
+  <div class="card setup" id="setup">
+    <h2>Povezivanje s podacima</h2>
+    <p class="sub">Upisuje se samo jednom na ovom uređaju. Oba podatka ispisuje funkcija <b>mojKljuc</b> u projektu „Solarna obrada”.</p>
+    <label for="inUrl">Adresa web aplikacije (završava s /exec)</label>
+    <input id="inUrl" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+    <label for="inKljuc">Ključ</label>
+    <input id="inKljuc" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn primary" id="bSpremi">Spremi i učitaj</button>
+      <button class="btn" id="bOdustani">Odustani</button>
+    </div>
+    <p class="note" id="setupMsg"></p>
+  </div>
+
+  <div id="sadrzaj">
+  <div class="filters">
+    <label for="fGod">Godina</label>
+    <select id="fGod"></select>
+    <label for="fMj">Razdoblje</label>
+    <select id="fMj"></select>
+  </div>
+
+  <section class="hero" id="tiles"></section>
+
+  <div style="height:16px"></div>
+
+  <div class="card">
+    <h2>Kamo ide proizvodnja elektrane</h2>
+    <p class="sub">Po mjesecima, kWh. Dio potrošen odmah u kući i dio poslan u mrežu.</p>
+    <div class="legend" id="lg1"></div>
+    <div class="chart" id="ch1"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Razmjena s mrežom</h2>
+      <p class="sub">Po mjesecima, kWh.</p>
+      <div class="legend" id="lg2"></div>
+      <div class="chart" id="ch2"></div>
+    </div>
+    <div class="card">
+      <h2>Saldo po tarifama</h2>
+      <p class="sub">Poslano − potrošeno, kWh. Iznad nule: više poslano nego uzeto.</p>
+      <div class="chart" id="ch3a"></div>
+      <div class="chart" id="ch3b" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="dTitle">Dnevni pregled</h2>
+    <p class="sub">kWh po danu. Stupci: proizvodnja elektrane; crta: potrošeno iz mreže.</p>
+    <div class="legend" id="lg4"></div>
+    <div class="chart" id="ch4"></div>
+  </div>
+
+  <div class="card">
+    <h2>Tablica po mjesecima</h2>
+    <p class="sub">Sve vrijednosti u kWh.</p>
+    <div class="scroll"><table id="tbl"></table></div>
+    <p class="note">Skupa tarifa = 08:00–22:00, jeftina = ostalo. Očitanje u 00:00 pripada prethodnom danu.
+      HEP podatke za prošli mjesec objavljuje oko 5. u mjesecu; do tada je za taj mjesec poznata samo proizvodnja.</p>
+  </div>
+</div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+(function () {
+  const MJ = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
+  const MJk = ['sij','velj','ožu','tra','svi','lip','srp','kol','ruj','lis','stu','pro'];
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = (v, d = 1) => v == null || isNaN(v) ? '–' : v.toLocaleString('hr-HR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmt0 = v => fmt(v, 0);
+  const sgn = (v, d = 0) => (v > 0 ? '+' : v < 0 ? '−' : '') + fmt(Math.abs(v), d);
+  const pct = v => v == null || !isFinite(v) ? '–' : Math.round(v * 100) + ' %';
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const $ = id => document.getElementById(id);
+
+  let STATE = { data: null, mjesec: 'god' };
+
+  // ---------- data ----------
+  // dani: [datum 'yyyy-MM-dd', pp, ps, pj, mp, ms, mj, pmax, mmax, prod, vlastita, ukupna]
+  function agregiraj(dani) {
+    const m = Array.from({ length: 12 }, (_, i) => ({ i, pp: 0, ps: 0, pj: 0, mp: 0, ms: 0, mj: 0, prodHep: 0, prodSve: 0, prodCeka: 0, vl: 0, hepDana: 0, dana: 0 }));
+    dani.forEach(r => {
+      const x = m[Number(r[0].slice(5, 7)) - 1];
+      x.dana++;
+      const hep = r[1] != null;
+      if (hep) { x.hepDana++; x.pp += r[1]; x.ps += r[2]; x.pj += r[3]; x.mp += r[4]; x.ms += r[5]; x.mj += r[6]; }
+      if (r[9] != null) { x.prodSve += r[9]; if (hep) x.prodHep += r[9]; else x.prodCeka += r[9]; }
+      if (r[10] != null) x.vl += r[10];
+    });
+    return m;
+  }
+  function zbroj(ms) {
+    const t = { pp: 0, ps: 0, pj: 0, mp: 0, ms: 0, mj: 0, prodHep: 0, prodSve: 0, prodCeka: 0, vl: 0, hepDana: 0, dana: 0 };
+    ms.forEach(x => { for (const k in t) t[k] += x[k]; });
+    return t;
+  }
+
+  // ---------- tooltip ----------
+  const tip = $('tip');
+  function showTip(ev, title, rows) {
+    tip.replaceChildren();
+    const t = document.createElement('div'); t.className = 't'; t.textContent = title; tip.appendChild(t);
+    rows.forEach(([name, val, color, line]) => {
+      const r = document.createElement('div'); r.className = 'r';
+      const s = document.createElement('span');
+      if (color) { const k = document.createElement('i'); k.className = 'lkey'; k.style.background = color; if (!line) k.style.height = '3px'; s.appendChild(k); }
+      s.appendChild(document.createTextNode(name));
+      const b = document.createElement('b'); b.textContent = val;
+      r.append(s, b); tip.appendChild(r);
+    });
+    tip.style.display = 'block';
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = ev.clientX + 14, y = ev.clientY + 14;
+    if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+    if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  const hideTip = () => { tip.style.display = 'none'; };
+
+  function legend(id, items) {
+    const box = $(id); box.replaceChildren();
+    items.forEach(([name, color, line]) => {
+      const s = document.createElement('span');
+      const k = document.createElement('i'); k.className = line ? 'lkey' : 'key'; k.style.background = color;
+      s.append(k, document.createTextNode(name)); box.appendChild(s);
+    });
+  }
+
+  // ---------- generic column chart ----------
+  // opts: { cats:[label], full:[tooltip title], series:[{name,color,values}], stacked, line:{name,color,values}, height, labelEvery, gap }
+  function columns(id, o) {
+    const box = $(id); box.replaceChildren();
+    const W = Math.max(300, box.clientWidth), H = o.height || 260;
+    const pad = { l: 46, r: 8, t: 10, b: 24 };
+    const n = o.cats.length, iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+    let max = 0, min = 0;
+    for (let i = 0; i < n; i++) {
+      if (o.stacked) { let s = 0; o.series.forEach(se => s += Math.max(0, se.values[i] || 0)); max = Math.max(max, s); }
+      else o.series.forEach(se => { const v = se.values[i] || 0; max = Math.max(max, v); min = Math.min(min, v); });
+      if (o.line) max = Math.max(max, o.line.values[i] || 0);
+    }
+    if (max === 0 && min === 0) max = 1;
+    const step = niceStep((max - min) / 4);
+    max = Math.ceil(max / step) * step; min = Math.floor(min / step) * step;
+    const y = v => pad.t + ih - (v - min) / (max - min) * ih;
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img' }, box);
+    for (let v = min; v <= max + 1e-9; v += step) {
+      el('line', { x1: pad.l, x2: W - pad.r, y1: y(v), y2: y(v), stroke: v === 0 ? css('--axis') : css('--grid'), 'stroke-width': 1 }, svg);
+      const t = el('text', { x: pad.l - 6, y: y(v) + 4, 'text-anchor': 'end' }, svg); t.textContent = fmt0(v);
+    }
+    const band = iw / n, groups = o.stacked ? 1 : o.series.length;
+    const gapPx = o.gap === 0 ? 0 : 2;
+    const bw = Math.min(24, Math.max(1, (band * 0.7 - gapPx * (groups - 1)) / groups));
+    const every = o.labelEvery || 1;
+    for (let i = 0; i < n; i++) {
+      const cx = pad.l + band * i + band / 2;
+      if (i % every === 0 || n <= 12) {
+        const t = el('text', { x: cx, y: H - 6, 'text-anchor': 'middle' }, svg); t.textContent = o.cats[i];
+      }
+      if (o.stacked) {
+        let base = 0; const segs = o.series.filter(se => (se.values[i] || 0) > 0);
+        segs.forEach((se, k) => {
+          const v = se.values[i];
+          const y0 = y(base), y1 = y(base + v);
+          const top = k === segs.length - 1;
+          bar(svg, cx - bw / 2, y1 + (k > 0 || gapPx === 0 ? 0 : 0), bw, Math.max(0, y0 - y1 - (k > 0 ? gapPx : 0)), se.color, top);
+          base += v;
+        });
+      } else {
+        o.series.forEach((se, k) => {
+          const v = se.values[i] || 0; if (!v) return;
+          const x = cx - (groups * bw + (groups - 1) * gapPx) / 2 + k * (bw + gapPx);
+          const color = se.colorFn ? se.colorFn(v) : se.color;
+          if (v >= 0) bar(svg, x, y(v), bw, y(0) - y(v), color, true);
+          else barDown(svg, x, y(0), bw, y(v) - y(0), color);
+        });
+      }
+    }
+    if (o.line) {
+      const pts = [];
+      for (let i = 0; i < n; i++) { const v = o.line.values[i]; if (v != null) pts.push([pad.l + band * i + band / 2, y(v)]); else if (pts.length) { drawLine(svg, pts.splice(0), o.line.color); } }
+      drawLine(svg, pts, o.line.color);
+    }
+    for (let i = 0; i < n; i++) {
+      const r = el('rect', { class: 'hit', x: pad.l + band * i, y: pad.t, width: band, height: ih, tabindex: 0 }, svg);
+      const rows = () => {
+        const out = o.series.map(se => [se.name, se.values[i] == null ? '–' : fmt(se.values[i]) + ' kWh', se.colorFn ? se.colorFn(se.values[i] || 0) : se.color]);
+        if (o.line) out.push([o.line.name, o.line.values[i] == null ? '–' : fmt(o.line.values[i]) + ' kWh', o.line.color, true]);
+        if (o.extra) o.extra(i).forEach(x => out.push(x));
+        return out;
+      };
+      r.addEventListener('pointermove', ev => showTip(ev, o.full ? o.full[i] : o.cats[i], rows()));
+      r.addEventListener('pointerleave', hideTip);
+      r.addEventListener('focus', ev => { const b = r.getBoundingClientRect(); showTip({ clientX: b.right, clientY: b.top }, o.full ? o.full[i] : o.cats[i], rows()); });
+      r.addEventListener('blur', hideTip);
+    }
+  }
+  function bar(svg, x, yTop, w, h, color, rounded) {
+    if (h <= 0) return;
+    const r = rounded ? Math.min(4, w / 2, h) : 0;
+    el('path', { d: `M${x},${yTop + h} V${yTop + r} Q${x},${yTop} ${x + r},${yTop} H${x + w - r} Q${x + w},${yTop} ${x + w},${yTop + r} V${yTop + h} Z`, fill: color }, svg);
+  }
+  function barDown(svg, x, y0, w, h, color) {
+    if (h <= 0) return;
+    const r = Math.min(4, w / 2, h);
+    el('path', { d: `M${x},${y0} V${y0 + h - r} Q${x},${y0 + h} ${x + r},${y0 + h} H${x + w - r} Q${x + w},${y0 + h} ${x + w},${y0 + h - r} V${y0} Z`, fill: color }, svg);
+  }
+  function drawLine(svg, pts, color) {
+    if (pts.length < 2) return;
+    el('polyline', { points: pts.map(p => p.join(',')).join(' '), fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+  }
+  function niceStep(raw) {
+    if (raw <= 0) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+  }
+
+  // ---------- render ----------
+  function render() {
+    const D = STATE.data, M = agregiraj(D.dani);
+    const sel = STATE.mjesec, odabrani = sel === 'god' ? M : [M[+sel]];
+    const T = zbroj(odabrani);
+    const zadnjiHep = D.dani.filter(r => r[1] != null).map(r => r[0]).pop();
+    const zadnjiProd = D.dani.filter(r => r[9] != null).map(r => r[0]).pop();
+    const dmy = s => s ? s.slice(8, 10) + '.' + s.slice(5, 7) + '.' : '–';
+    $('meta').textContent = `Ažurirano ${D.azurirano || '–'} · HEP podaci do ${dmy(zadnjiHep)} · proizvodnja do ${dmy(zadnjiProd)}`;
+
+    // tiles
+    const razd = sel === 'god' ? 'u ' + D.godina + '.' : MJ[+sel].toLowerCase();
+    const saldo = T.mp - T.pp, saldoS = T.ms - T.ps, saldoJ = T.mj - T.pj;
+    const pokrice = (T.pp + T.vl) > 0 ? T.vl / (T.pp + T.vl) : null;
+    const tiles = [
+      { big: true, lbl: 'Proizvedeno ' + razd, val: fmt0(T.prodSve), unit: 'kWh',
+        det: T.prodCeka > 0 ? `od toga ${fmt0(T.prodCeka)} kWh čeka HEP podatke` : (T.prodHep > 0 ? `${pct(T.vl / T.prodHep)} potrošeno odmah u kući` : '') },
+      { lbl: 'Poslano u mrežu', key: css('--s-poslano'), val: fmt0(T.mp), unit: 'kWh', det: `skupa ${fmt0(T.ms)} · jeftina ${fmt0(T.mj)}` },
+      { lbl: 'Potrošeno iz mreže', key: css('--s-mreza'), val: fmt0(T.pp), unit: 'kWh', det: `skupa ${fmt0(T.ps)} · jeftina ${fmt0(T.pj)}` },
+      { lbl: 'Saldo s mrežom', val: sgn(saldo), unit: 'kWh', det: `skupa ${sgn(saldoS)} · jeftina ${sgn(saldoJ)}`, cls: saldo >= 0 ? 'posv' : 'neg' },
+      { lbl: 'Elektrana pokriva potrošnju', key: css('--s-vlastita'), val: pct(pokrice), unit: '', det: `kuća ukupno potrošila ${fmt0(T.pp + T.vl)} kWh` },
+    ];
+    const tb = $('tiles'); tb.replaceChildren();
+    tiles.forEach(t => {
+      const d = document.createElement('div'); d.className = 'tile' + (t.big ? ' big' : '');
+      const l = document.createElement('div'); l.className = 'lbl';
+      if (t.key) { const k = document.createElement('i'); k.className = 'key'; k.style.background = t.key; l.appendChild(k); }
+      l.appendChild(document.createTextNode(t.lbl));
+      const v = document.createElement('div'); v.className = 'val' + (t.cls ? ' ' + t.cls : '');
+      v.appendChild(document.createTextNode(t.val + ' ')); const sm = document.createElement('small'); sm.textContent = t.unit; v.appendChild(sm);
+      const de = document.createElement('div'); de.className = 'det'; de.textContent = t.det;
+      d.append(l, v, de); tb.appendChild(d);
+    });
+
+    const cVl = css('--s-vlastita'), cPo = css('--s-poslano'), cMr = css('--s-mreza'), cCe = css('--s-ceka');
+
+    // chart 1: production split
+    legend('lg1', [['Potrošeno odmah u kući', cVl], ['Poslano u mrežu', cPo], ['Proizvedeno – čeka HEP podatke', cCe]]);
+    columns('ch1', {
+      cats: MJk, full: MJ.map(m => m + ' ' + D.godina), stacked: true, height: 260,
+      series: [
+        { name: 'Potrošeno u kući', color: cVl, values: M.map(x => x.hepDana ? Math.max(0, x.vl) : null) },
+        { name: 'Poslano u mrežu', color: cPo, values: M.map(x => x.hepDana ? x.mp : null) },
+        { name: 'Čeka HEP podatke', color: cCe, values: M.map(x => x.prodCeka || null) },
+      ],
+      extra: i => [['Ukupno proizvedeno', fmt(M[i].prodSve) + ' kWh']],
+    });
+
+    // chart 2: grid exchange
+    legend('lg2', [['Poslano u mrežu', cPo], ['Potrošeno iz mreže', cMr]]);
+    columns('ch2', {
+      cats: MJk, full: MJ, height: 220,
+      series: [
+        { name: 'Poslano u mrežu', color: cPo, values: M.map(x => x.hepDana ? x.mp : null) },
+        { name: 'Potrošeno iz mreže', color: cMr, values: M.map(x => x.hepDana ? x.pp : null) },
+      ],
+    });
+
+    // chart 3: saldo per tariff (diverging, small multiples)
+    const cPos = css('--pos'), cNeg = css('--neg');
+    const div = v => v >= 0 ? cPos : cNeg;
+    [['ch3a', 'Skupa tarifa', x => x.ms - x.ps], ['ch3b', 'Jeftina tarifa', x => x.mj - x.pj]].forEach(([id, name, f]) => {
+      const box = $(id); box.replaceChildren();
+      const h = document.createElement('div'); h.className = 'lbl'; h.style.cssText = 'font-size:13px;color:var(--ink-2);margin-bottom:2px'; h.textContent = name;
+      box.appendChild(h);
+      const inner = document.createElement('div'); inner.id = id + 'i'; box.appendChild(inner);
+      columns(id + 'i', { cats: MJk, full: MJ.map(m => m + ' – ' + name.toLowerCase()), height: 120,
+        series: [{ name: 'Saldo', colorFn: div, values: M.map(x => x.hepDana ? f(x) : null) }] });
+    });
+
+    // chart 4: daily
+    const dani = sel === 'god' ? D.dani : D.dani.filter(r => Number(r[0].slice(5, 7)) - 1 === +sel);
+    $('dTitle').textContent = 'Dnevni pregled – ' + (sel === 'god' ? 'cijela ' + D.godina + '.' : MJ[+sel] + ' ' + D.godina + '.');
+    legend('lg4', [['Potrošeno odmah u kući', cVl], ['Poslano u mrežu', cPo], ['Proizvedeno – čeka HEP podatke', cCe], ['Potrošeno iz mreže', cMr, true]]);
+    columns('ch4', {
+      cats: dani.map(r => sel === 'god' ? (r[0].slice(8) === '01' ? MJk[+r[0].slice(5, 7) - 1] : '') : String(+r[0].slice(8))),
+      full: dani.map(r => { const d = new Date(r[0] + 'T12:00'); return d.toLocaleDateString('hr-HR', { weekday: 'short', day: 'numeric', month: 'long' }); }),
+      stacked: true, height: 260, gap: sel === 'god' ? 0 : 2,
+      labelEvery: sel === 'god' ? 1 : (dani.length > 20 ? 2 : 1),
+      series: [
+        { name: 'Potrošeno u kući', color: cVl, values: dani.map(r => r[10] != null ? Math.max(0, r[10]) : null) },
+        { name: 'Poslano u mrežu', color: cPo, values: dani.map(r => r[4]) },
+        { name: 'Čeka HEP podatke', color: cCe, values: dani.map(r => r[1] == null ? r[9] : null) },
+      ],
+      line: { name: 'Potrošeno iz mreže', color: cMr, values: dani.map(r => r[1]) },
+      extra: i => [['Proizvedeno', dani[i][9] == null ? '–' : fmt(dani[i][9]) + ' kWh']],
+    });
+
+    // table
+    const tbl = $('tbl'); tbl.replaceChildren();
+    const head = ['Mjesec', 'Proizvedeno', 'Potrošeno u kući', 'Poslano u mrežu', 'Potrošeno iz mreže', 'Saldo skupa', 'Saldo jeftina', 'Saldo ukupno', 'Pokriće potrošnje'];
+    const th = tbl.createTHead().insertRow(); head.forEach(h => { const c = document.createElement('th'); c.textContent = h; th.appendChild(c); });
+    const body = tbl.createTBody();
+    const row = (parent, name, x) => {
+      const r = parent.insertRow();
+      const h = !!x.hepDana;
+      const vals = [name, fmt(x.prodSve), h ? fmt(x.vl) : '–', h ? fmt(x.mp) : '–', h ? fmt(x.pp) : '–',
+        h ? sgn(x.ms - x.ps, 1) : '–', h ? sgn(x.mj - x.pj, 1) : '–', h ? sgn(x.mp - x.pp, 1) : '–',
+        h && (x.pp + x.vl) > 0 ? pct(x.vl / (x.pp + x.vl)) : '–'];
+      vals.forEach((v, k) => { const c = r.insertCell(); c.textContent = v; if (k >= 5 && k <= 7 && h) c.className = v.startsWith('−') ? 'neg' : ''; });
+    };
+    M.forEach((x, i) => { if (x.dana) row(body, MJ[i], x); });
+    row(tbl.createTFoot(), 'Ukupno ' + D.godina + '.', zbroj(M));
+  }
+
+  function napuniFiltere() {
+    const D = STATE.data;
+    const fg = $('fGod'); fg.replaceChildren();
+    (D.godine || [D.godina]).slice().sort((a, b) => b - a).forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = g; if (+g === +D.godina) o.selected = true; fg.appendChild(o); });
+    const fm = $('fMj'); fm.replaceChildren();
+    const o0 = document.createElement('option'); o0.value = 'god'; o0.textContent = 'Cijela godina'; fm.appendChild(o0);
+    const imaju = new Set(D.dani.map(r => Number(r[0].slice(5, 7)) - 1));
+    MJ.map((m, i) => [m, i]).reverse().forEach(([m, i]) => { if (!imaju.has(i)) return; const o = document.createElement('option'); o.value = i; o.textContent = m; fm.appendChild(o); });
+    if (STATE.mjesec !== 'god' && !imaju.has(+STATE.mjesec)) STATE.mjesec = 'god';
+    fm.value = STATE.mjesec;
+  }
+
+  // ---------- povezivanje (adresa + ključ) ----------
+  const LS = 'solarna-postavke';
+  function citajPostavke() {
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (h.get('u') && h.get('k')) {
+      const p = { u: h.get('u'), k: h.get('k') };
+      try { localStorage.setItem(LS, JSON.stringify(p)); } catch (e) {}
+      return p;
+    }
+    try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { return null; }
+  }
+  function prikaziPostavke(poruka) {
+    const p = citajPostavke() || {};
+    $('inUrl').value = p.u || ''; $('inKljuc').value = p.k || '';
+    $('setupMsg').textContent = poruka || '';
+    $('setup').classList.add('on');
+    $('bOdustani').classList.toggle('hide', !STATE.data);
+    if (!STATE.data) $('sadrzaj').classList.add('hide');
+  }
+  $('bSpremi').addEventListener('click', () => {
+    const p = { u: $('inUrl').value.trim(), k: $('inKljuc').value.trim() };
+    if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(p.u)) { $('setupMsg').textContent = 'Adresa mora počinjati s https://script.google.com/ i završavati s /exec.'; return; }
+    if (!p.k) { $('setupMsg').textContent = 'Upišite ključ.'; return; }
+    try { localStorage.setItem(LS, JSON.stringify(p)); } catch (e) {}
+    if (location.hash) history.replaceState(null, '', location.pathname + '#u=' + encodeURIComponent(p.u) + '&k=' + encodeURIComponent(p.k));
+    $('setup').classList.remove('on'); ucitaj(STATE.data ? STATE.data.godina : null);
+  });
+  $('bOdustani').addEventListener('click', () => $('setup').classList.remove('on'));
+  $('bPostavke').addEventListener('click', () => prikaziPostavke(''));
+  $('bOsvjezi').addEventListener('click', () => ucitaj(STATE.data ? STATE.data.godina : null));
+
+  let zadnjeUcitano = 0;
+  function ucitaj(godina) {
+    $('app').classList.add('loading');
+    const gotovo = d => {
+      STATE.data = d; zadnjeUcitano = Date.now();
+      $('app').classList.remove('loading'); $('sadrzaj').classList.remove('hide');
+      napuniFiltere(); render();
+    };
+    const greska = poruka => { $('app').classList.remove('loading'); $('meta').textContent = poruka; };
+    if (window.google && google.script && google.script.run) {
+      google.script.run.withSuccessHandler(gotovo).withFailureHandler(e => greska('Greška pri učitavanju: ' + (e && e.message || e))).getPodaci(godina || null);
+      return;
+    }
+    if (window.DEMO_PODACI) { gotovo(window.DEMO_PODACI); return; }
+    const p = citajPostavke();
+    if (!p) { $('app').classList.remove('loading'); prikaziPostavke(''); $('meta').textContent = 'Potrebno je povezivanje s podacima.'; return; }
+    const url = p.u + '?format=json&k=' + encodeURIComponent(p.k) + (godina ? '&godina=' + godina : '');
+    fetch(url, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.greska) { greska(d.greska); if (/ključ/i.test(d.greska)) prikaziPostavke(d.greska); return; }
+        gotovo(d);
+      })
+      .catch(e => greska('Nije moguće dohvatiti podatke (' + (e.message || e) + '). Provjerite internetsku vezu i da je web aplikacija objavljena s pristupom „Anyone”.'));
+  }
+  addEventListener('hashchange', () => { $('setup').classList.remove('on'); ucitaj(null); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && STATE.data && Date.now() - zadnjeUcitano > 10 * 60 * 1000) ucitaj(STATE.data.godina);
+  });
+
+  $('fGod').addEventListener('change', e => ucitaj(+e.target.value));
+  $('fMj').addEventListener('change', e => { STATE.mjesec = e.target.value; render(); });
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => STATE.data && render(), 150); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => STATE.data && render());
+  ucitaj(null);
+})();
+</script>
+</body>
+</html>
